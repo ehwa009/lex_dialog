@@ -1,0 +1,5 @@
+<launch>
+    <node name="lex_dialog" type="node.py" pkg="lex_dialog" output="screen">
+        <param name="weather_api" value="$(find lex_dialog)/config/weather_api.json"/>
+    </node>
+</launch>

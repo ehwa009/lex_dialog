@@ -11,9 +11,13 @@ import boto3
 
 from mind_msgs.msg import Reply, RaisingEvents
 from mind_msgs.srv import ReloadWithResult, ReadData, WriteData
+from ever_msgs.msg import FacialEmotion
 
 import actionlib
 from polly_speech.msg import SpeechAction, SpeechGoal
+
+pub_expression = rospy.Publisher('set_facial_emotion', FacialEmotion, queue_size=10)
+
 
 class LexHandler: 
     def __init__(self):
@@ -39,7 +43,13 @@ class LexHandler:
 
         rospy.Subscriber('raising_events', RaisingEvents, self.handle_raise_events)
         self.pub_reply = rospy.Publisher('reply', Reply, queue_size=10)
-
+        
+        # force to set initial emotion
+        data = FacialEmotion()
+        data.name = 'happiness'
+        data.value = 1.0
+        pub_expression.publish(data)
+        
         rospy.loginfo('[%s] Initialzed'%rospy.get_name())
         rospy.spin()
 
@@ -63,21 +73,14 @@ class LexHandler:
                 accept = 'text/plain; charset=utf-8',
                 inputStream = msg.recognized_word)
             
+            # rospy.logwarn('Ever says: %s' %response.get('message'))
+            
             # msg for SHIR project
             reply_msg = Reply()
             reply_msg.header.stamp = rospy.Time.now()
             reply_msg.reply = response.get('message')
             self.pub_reply.publish(reply_msg)
             
-            # msg for Polly speech
-            client = actionlib.SimpleActionClient('internal_speech', SpeechAction)
-            client.wait_for_server()
-
-            goal = SpeechGoal()
-            goal.text = response.get('message')
-            client.send_goal(goal, done_cb=self.func_done, feedback_cb=self.func_feedback, active_cb=self.func_active)
-            client.wait_for_result()
-            exit(1)
         else:
             rospy.loginfo('getting signal from guide bot')
 
